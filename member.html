@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Member Dashboard - Gym</title>
+  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: #0f0f0f;
+      color: #fff;
+      margin: 0;
+    }
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #181818;
+      padding: 12px 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .nav-links button {
+      background: none;
+      border: none;
+      color: #ccc;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .nav-links button.active {
+      color: #00ffc3;
+      border-bottom: 2px solid #00ffc3;
+    }
+    .nav-links button:hover {
+      color: #00ffc3;
+    }
+    .logout-btn {
+      background: #ff4444;
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .logout-btn:hover { background: #cc0000; }
+
+    .container { max-width: 900px; margin: 40px auto; padding: 20px; }
+    .tab-content { display: none; animation: fade 0.3s ease-in-out; }
+    .tab-content.active { display: block; }
+    @keyframes fade { from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
+    .card {
+      background: #181818;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.4);
+    }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li {
+      background: #222;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    h1, h2 { color: #00ffc3; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div class="nav-links">
+      <button class="tab-btn active" data-target="dashboard">Dashboard</button>
+      <button class="tab-btn" data-target="bills">Bills</button>
+      <button class="tab-btn" data-target="notifications">Notifications</button>
+      <button class="tab-btn" data-target="store">Store</button>
+    </div>
+    <button id="logoutBtn" class="logout-btn">Logout</button>
+  </div>
+
+  <div class="container">
+    <!-- Dashboard -->
+    <div id="dashboard" class="tab-content active">
+      <h1>Welcome 💪</h1>
+      <div class="card">
+        <p>Check your bills, notifications, and explore supplements in the store!</p>
+      </div>
+    </div>
+
+    <!-- Bills -->
+    <div id="bills" class="tab-content">
+      <h2>💰 Your Bills</h2>
+      <div class="card">
+        <ul id="billList"></ul>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notifications" class="tab-content">
+      <h2>🔔 Notifications</h2>
+      <div class="card">
+        <ul id="notifList"></ul>
+      </div>
+    </div>
+
+    <!-- Store -->
+    <div id="store" class="tab-content">
+      <h2>💪 Supplement Store</h2>
+      <div class="card">
+        <ul id="storeList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <!-- Config and logic -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/db.js"></script>
+
+  <script>
+    const billsEl = document.getElementById("billList");
+    const notifEl = document.getElementById("notifList");
+    const storeEl = document.getElementById("storeList");
+
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (!user) return (window.location = "index.html");
+      await loadBills(user.uid);
+      await loadNotifications(user.uid);
+      await loadStore();
+    });
+
+    document.getElementById("logoutBtn").onclick = logout;
+
+    // Load Store (supplements)
+    async function loadStore() {
+      storeEl.innerHTML = "<li>Loading...</li>";
+      try {
+        const snap = await db.collection("store").orderBy("name").get();
+        storeEl.innerHTML = "";
+        if (snap.empty) {
+          storeEl.innerHTML = "<li>No supplements available right now.</li>";
+          return;
+        }
+        snap.forEach(doc => {
+          const d = doc.data();
+          const li = document.createElement("li");
+          li.innerHTML = `<strong>${d.name}</strong><br>₹${d.price}<br><span style="color:#aaa">Stock: ${d.stock}</span>`;
+          storeEl.appendChild(li);
+        });
+      } catch (e) {
+        console.error(e);
+        storeEl.innerHTML = "<li>Error loading store items</li>";
+      }
+    }
+
+    // Tab switching
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.target).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

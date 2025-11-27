@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin - Gym Management System</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    /* Minimal embedded CSS for the admin panel */
+    :root { --accent: #00ffc3; --bg: #0f0f0f; --card: #1b1b1b; --muted:#aaa; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:#fff}
+    .navbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#141414;gap:12px;flex-wrap:wrap}
+    .nav-left{display:flex;gap:10px;align-items:center}
+    .brand{color:var(--accent);font-weight:700}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{background:none;border:0;color:#ccc;padding:8px 12px;border-radius:8px;cursor:pointer}
+    .tab.active{color:var(--accent);border-bottom:2px solid var(--accent)}
+    .logout{background:#ff4d4d;border:0;padding:8px 12px;color:#fff;border-radius:8px;cursor:pointer}
+    .container{padding:18px;max-width:1200px;margin:18px auto}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+    .card{background:var(--card);padding:16px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.4)}
+    input,select,textarea,button{width:100%;padding:9px;border-radius:8px;border:0;background:#272727;color:#fff}
+    label{display:block;margin:8px 0 6px;color:var(--muted)}
+    .muted{color:var(--muted);font-size:13px}
+    ul{list-style:none;padding:0;margin:0}
+    li{background:#2b2b2b;padding:10px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+    .btn-primary{background:var(--accent);color:#000;border:0;padding:10px;border-radius:8px;cursor:pointer;font-weight:700}
+    .btn-danger{background:#ff5959;color:#fff;border:0;padding:8px;border-radius:8px;cursor:pointer}
+    .small{padding:6px 8px;font-size:14px;border-radius:6px}
+    .flex{display:flex;gap:10px;align-items:center}
+    .center{text-align:center}
+    @media(max-width:700px){.grid{grid-template-columns:1fr}}
+    .top-stats{display:flex;gap:12px;flex-wrap:wrap}
+    .stat{flex:1;min-width:180px}
+    .search{background:#222;padding:8px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div class="nav-left">
+      <div class="brand">Gym Admin</div>
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-target="dashboard">Dashboard</button>
+        <button class="tab" data-target="members">Members</button>
+        <button class="tab" data-target="billing">Billing</button>
+        <button class="tab" data-target="notifications">Notifications</button>
+        <button class="tab" data-target="reports">Reports</button>
+        <button class="tab" data-target="store">Store</button>
+        <button class="tab" data-target="diet">Diet</button>
+      </div>
+    </div>
+    <div>
+      <button id="currentAdmin" class="muted" style="background:none;border:0;margin-right:10px"></button>
+      <button id="logoutBtn" class="logout">Logout</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Dashboard -->
+    <div id="dashboard" class="panel active">
+      <div class="card">
+        <h2>Overview</h2>
+        <div class="top-stats" style="margin-top:12px">
+          <div class="stat card">
+            <h3>Total Members</h3>
+            <div id="statMembers" class="center" style="font-size:22px">—</div>
+          </div>
+          <div class="stat card">
+            <h3>Pending Bills</h3>
+            <div id="statPending" class="center" style="font-size:22px">—</div>
+          </div>
+          <div class="stat card">
+            <h3>Monthly Revenue (₹)</h3>
+            <div id="statRevenue" class="center" style="font-size:22px">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Members -->
+    <div id="members" class="panel" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <h3>Add Member (creates Auth account)</h3>
+          <label>Name</label><input id="mname" placeholder="Full name">
+          <label>Email</label><input id="memail" placeholder="member@example.com" type="email">
+          <label>Package</label>
+          <select id="mpackage">
+            <option value="">Select package</option>
+            <option>Monthly</option>
+            <option>Quarterly</option>
+            <option>Yearly</option>
+          </select>
+          <div style="margin-top:10px"><button id="addMemberBtn" class="btn-primary">Create Member (default pass = member123)</button></div>
+          <div class="muted" style="margin-top:8px">Note: created account can login with the default password. Ask members to change password.</div>
+        </div>
+
+        <div class="card">
+          <h3>All Members</h3>
+          <input id="memberSearch" class="search" placeholder="Search members by name or email">
+          <ul id="memberList" style="margin-top:10px;max-height:420px;overflow:auto"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Billing -->
+    <div id="billing" class="panel" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <h3>Create Bill</h3>
+          <label>Member</label>
+          <select id="billMemberSelect"><option value="">Loading members...</option></select>
+          <label>Amount (₹)</label><input id="billAmount" type="number" placeholder="Amount">
+          <label>Status</label>
+          <select id="billPaid"><option value="false">Unpaid</option><option value="true">Paid</option></select>
+          <div style="margin-top:10px"><button id="addBillBtn" class="btn-primary">Create Bill</button></div>
+        </div>
+
+        <div class="card">
+          <h3>All Bills</h3>
+          <input id="billSearch" class="search" placeholder="Search bills (amount, paid/unpaid, member)">
+          <ul id="billList" style="margin-top:10px;max-height:420px;overflow:auto"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notifications" class="panel" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <h3>Send Notification</h3>
+          <label>Member (optional)</label>
+          <select id="notifMemberSelect"><option value="">All members (broadcast)</option></select>
+          <label>Title</label><input id="notifTitle" placeholder="Title">
+          <label>Message</label><textarea id="notifMsg" rows="3" placeholder="Message..."></textarea>
+          <div style="margin-top:10px"><button id="addNotifBtn" class="btn-primary">Send Notification</button></div>
+        </div>
+
+        <div class="card">
+          <h3>Sent Notifications</h3>
+          <ul id="notifList" style="max-height:420px;overflow:auto;margin-top:10px"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reports -->
+    <div id="reports" class="panel" style="display:none">
+      <div class="card">
+        <h3>Export / Reports</h3>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+          <button id="exportMembersBtn" class="btn-primary small">Export Members (CSV)</button>
+          <button id="exportBillsBtn" class="btn-primary small">Export Bills (CSV)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Store -->
+    <div id="store" class="panel" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <h3>Add / Update Supplement</h3>
+          <label>Name</label><input id="sname" placeholder="Protein Powder">
+          <label>Price (₹)</label><input id="sprice" type="number" placeholder="Price">
+          <label>Stock</label><input id="sstock" type="number" placeholder="Stock">
+          <div style="margin-top:10px"><button id="addSupplementBtn" class="btn-primary">Add / Update</button></div>
+        </div>
+
+        <div class="card">
+          <h3>Supplements</h3>
+          <ul id="supplementList" style="max-height:420px;overflow:auto;margin-top:10px"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diet -->
+    <div id="diet" class="panel" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <h3>Assign Diet</h3>
+          <label>Member</label>
+          <select id="dietMemberSelect"><option value="">Select member</option></select>
+          <label>Plan (text)</label>
+          <textarea id="dietPlan" rows="5" placeholder="Morning: oats..."></textarea>
+          <div style="margin-top:10px"><button id="saveDietBtn" class="btn-primary">Save Diet</button></div>
+        </div>
+
+        <div class="card">
+          <h3>All Diets</h3>
+          <ul id="dietList" style="max-height:420px;overflow:auto;margin-top:10px"></ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Firebase compat SDKs (must be compat if you're using compat config) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <!-- Your firebase-config.js should initialize firebase, window.auth and window.db (compat style) -->
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/db.js"></script>
+
+  <script>
+  // ========= Helper state =========
+  let membersMap = {}; // uid -> {name,email,package}
+  // ========= Tab switching =========
+  document.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.style.display='none');
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.target).style.display = 'block';
+    });
+  });
+
+  // ========= Auth & init =========
+  firebase.auth().onAuthStateChanged(async user => {
+    if (!user) {
+      window.location = "../index.html"; // login page
+      return;
+    }
+    document.getElementById('currentAdmin').textContent = user.email;
+    // initial loads
+    await loadMembers();
+    await loadBills();
+    await loadNotifications();
+    await loadSupplements();
+    await loadDiets();
+    updateDashboardStats();
+    populateSelects();
+  });
+
+  document.getElementById('logoutBtn').onclick = logout;
+
+  // ========= MEMBERS CRUD =========
+  // Add member (create auth acct + members & users docs)
+  document.getElementById('addMemberBtn').onclick = async () => {
+    const name = document.getElementById('mname').value.trim();
+    const email = document.getElementById('memail').value.trim();
+    const pkg = document.getElementById('mpackage').value;
+    if (!name || !email || !pkg) return alert('Please fill all fields');
+
+    try {
+      // Create secondary app so admin doesn't get logged out
+      let secondaryApp;
+      try {
+        secondaryApp = firebase.initializeApp(firebase.app().options, 'Secondary');
+      } catch (e) {
+        // already exists
+        try { secondaryApp = firebase.app('Secondary'); } catch (e2) { secondaryApp = null; }
+      }
+      if (!secondaryApp) secondaryApp = firebase.initializeApp(firebase.app().options, 'Secondary');
+
+      const secondaryAuth = secondaryApp.auth();
+      const defaultPassword = 'member123';
+      const cred = await secondaryAuth.createUserWithEmailAndPassword(email, defaultPassword);
+
+      // Save profile into members and users collection using UID
+      await db.collection('members').doc(cred.user.uid).set({
+        name, email, package: pkg, joined: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      await db.collection('users').doc(cred.user.uid).set({
+        email, role: 'member', name, package: pkg, joined: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // cleanup
+      await secondaryApp.delete();
+
+      alert(`Member created. Email: ${email}\nPassword: ${defaultPassword}`);
+      document.getElementById('mname').value = document.getElementById('memail').value = '';
+      document.getElementById('mpackage').value = '';
+      await loadMembers();
+      await populateSelects();
+    } catch (err) {
+      console.error('Add member error', err);
+      alert('Error creating member: ' + err.message);
+    }
+  };
+
+  async function loadMembers() {
+    const ul = document.getElementById('memberList');
+    ul.innerHTML = '<li class="muted">Loading...</li>';
+    membersMap = {};
+    try {
+      const snap = await db.collection('members').orderBy('name').get();
+      ul.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        membersMap[doc.id] = d;
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div style="flex:1">
+            <strong>${d.name || '—'}</strong><div class="muted">${d.email || ''}</div>
+            <div class="muted">Package: ${d.package || '—'}</div>
+          </div>
+          <div class="flex">
+            <button class="small" onclick="editMember('${doc.id}')">Edit</button>
+            <button class="small btn-danger" onclick="deleteMember('${doc.id}')">Delete</button>
+          </div>
+        `;
+        ul.appendChild(li);
+      });
+      document.getElementById('statMembers').textContent = snap.size;
+    } catch (e) {
+      console.error(e);
+      ul.innerHTML = '<li>Error loading members</li>';
+    }
+  }
+
+  window.editMember = async function(uid) {
+    const m = membersMap[uid];
+    if (!m) return alert('Member not found');
+    const newName = prompt('Name:', m.name) || m.name;
+    const newEmail = prompt('Email:', m.email) || m.email;
+    const newPkg = prompt('Package:', m.package) || m.package;
+    try {
+      await db.collection('members').doc(uid).update({ name: newName, email: newEmail, package: newPkg });
+      await db.collection('users').doc(uid).update({ name: newName, email: newEmail, package: newPkg });
+      alert('Member updated');
+      await loadMembers();
+      await populateSelects();
+    } catch (e) {
+      console.error(e);
+      alert('Error updating member: ' + e.message);
+    }
+  };
+
+  window.deleteMember = async function(uid) {
+    if (!confirm('Delete this member (Firestore data only)? Auth account will NOT be removed from Firebase Auth via client.')) return;
+    try {
+      await db.collection('members').doc(uid).delete();
+      await db.collection('users').doc(uid).delete();
+      // Also remove related documents optionally (bills, notifications, diets)
+      const bills = await db.collection('bills').where('memberId','==',uid).get();
+      bills.forEach(b=> db.collection('bills').doc(b.id).delete());
+      const notifs = await db.collection('notifications').where('memberId','==',uid).get();
+      notifs.forEach(n=> db.collection('notifications').doc(n.id).delete());
+      const diets = await db.collection('diets').where('memberId','==',uid).get();
+      diets.forEach(d=> db.collection('diets').doc(d.id).delete());
+      alert('Member Firestore data deleted. To remove Auth account, run an Admin SDK script / Cloud Function.');
+      await loadMembers();
+      await loadBills();
+      await loadNotifications();
+      await loadDiets();
+      await populateSelects();
+    } catch (e) {
+      console.error(e);
+      alert('Error deleting member: ' + e.message);
+    }
+  };
+
+  // ========= BILLING =========
+  document.getElementById('addBillBtn').onclick = async () => {
+    const memberId = document.getElementById('billMemberSelect').value;
+    const amount = Number(document.getElementById('billAmount').value);
+    const paid = document.getElementById('billPaid').value === 'true';
+    if (!memberId || !amount) return alert('Fill member & amount');
+
+    try {
+      const res = await db.collection('bills').add({ memberId, amount, paid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      // create auto notification
+      await db.collection('notifications').add({
+        memberId,
+        title: paid ? 'Payment Received' : 'New Bill',
+        message: paid ? `Your payment of ₹${amount} has been received.` : `A new bill of ₹${amount} has been generated.`,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      alert('Bill created');
+      document.getElementById('billAmount').value = '';
+      document.getElementById('billMemberSelect').value = '';
+      await loadBills();
+      await loadNotifications();
+      updateDashboardStats();
+    } catch (e) { console.error(e); alert('Error creating bill: '+e.message); }
+  };
+
+  async function loadBills() {
+    const ul = document.getElementById('billList');
+    ul.innerHTML = '<li class="muted">Loading...</li>';
+    try {
+      const snap = await db.collection('bills').orderBy('createdAt','desc').get();
+      ul.innerHTML = '';
+      let pending = 0;
+      for (const doc of snap.docs) {
+        const d = doc.data();
+        const member = membersMap[d.memberId] || { name: 'Unknown' };
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div style="flex:1">
+            <strong>${member.name}</strong>
+            <div class="muted">₹${d.amount} — ${d.paid ? 'Paid' : 'Unpaid'}</div>
+            <div class="muted">${d.createdAt ? new Date(d.createdAt.seconds*1000).toLocaleString() : ''}</div>
+          </div>
+          <div class="flex">
+            <button class="small" onclick="toggleBillPaid('${doc.id}', ${!d.paid})">${d.paid ? 'Mark Unpaid' : 'Mark Paid'}</button>
+            <button class="small" onclick="editBill('${doc.id}')">Edit</button>
+            <button class="small btn-danger" onclick="deleteBill('${doc.id}')">Delete</button>
+          </div>
+        `;
+        ul.appendChild(li);
+        if (!d.paid) pending++;
+      }
+      document.getElementById('statPending').textContent = pending;
+      updateDashboardStats();
+    } catch (e) {
+      console.error(e);
+      ul.innerHTML = '<li>Error loading bills</li>';
+    }
+  }
+
+  window.toggleBillPaid = async function(billId, newStatus) {
+    try {
+      const docRef = db.collection('bills').doc(billId);
+      const doc = await docRef.get();
+      if (!doc.exists) return alert('Bill not found');
+      const d = doc.data();
+      await docRef.update({ paid: newStatus });
+      // send notification
+      await db.collection('notifications').add({
+        memberId: d.memberId,
+        title: newStatus ? 'Payment Received' : 'Payment Status Updated',
+        message: newStatus ? `Your payment of ₹${d.amount} has been received.` : `Your payment status changed.`,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      await loadBills();
+      await loadNotifications();
+    } catch (e) { console.error(e); alert('Error toggling paid: '+e.message); }
+  };
+
+  window.editBill = async function(billId) {
+    const doc = await db.collection('bills').doc(billId).get();
+    if (!doc.exists) return alert('Bill not found');
+    const d = doc.data();
+    const newAmount = prompt('Amount (₹):', d.amount) || d.amount;
+    const newPaid = prompt('Paid? (true/false):', d.paid) || d.paid;
+    try {
+      await db.collection('bills').doc(billId).update({ amount: Number(newAmount), paid: (newPaid==='true' || newPaid===true) });
+      alert('Bill updated');
+      await loadBills();
+    } catch (e) { console.error(e); alert('Error updating bill: '+e.message); }
+  };
+
+  window.deleteBill = async function(billId) {
+    if (!confirm('Delete this bill?')) return;
+    try { await db.collection('bills').doc(billId).delete(); alert('Bill deleted'); await loadBills(); updateDashboardStats(); } catch(e){console.error(e); alert('Error: '+e.message)}
+  };
+
+  // ========= NOTIFICATIONS =========
+  document.getElementById('addNotifBtn').onclick = async () => {
+    const memberId = document.getElementById('notifMemberSelect').value || null;
+    const title = document.getElementById('notifTitle').value.trim();
+    const message = document.getElementById('notifMsg').value.trim();
+    if (!title || !message) return alert('Type title and message');
+    const memberEmail = memberId ? (membersMap[memberId]?.email || '') : 'All';
+    try {
+      await db.collection('notifications').add({ memberId, memberEmail, title, message, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      alert('Notification saved');
+      document.getElementById('notifTitle').value = document.getElementById('notifMsg').value = '';
+      await loadNotifications();
+    } catch (e) { console.error(e); alert('Error sending notification: '+e.message); }
+  };
+
+  async function loadNotifications() {
+    const ul = document.getElementById('notifList');
+    ul.innerHTML = '<li class="muted">Loading...</li>';
+    try {
+      const snap = await db.collection('notifications').orderBy('createdAt','desc').get();
+      ul.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        const li = document.createElement('li');
+        li.innerHTML = `<div style="flex:1"><strong>${d.title}</strong><div class="muted">${d.message}</div><div class="muted">To: ${d.memberEmail || 'All'}</div></div>
+          <div class="flex">
+            <button class="small" onclick="deleteNotification('${doc.id}')">Delete</button>
+          </div>`;
+        ul.appendChild(li);
+      });
+    } catch (e) { console.error(e); ul.innerHTML = '<li>Error loading notifications</li>'; }
+  }
+
+  window.deleteNotification = async function(id) {
+    if (!confirm('Delete notification?')) return;
+    try { await db.collection('notifications').doc(id).delete(); await loadNotifications(); } catch(e){console.error(e); alert('Error: '+e.message)}
+  };
+
+  // ========= SUPPLEMENTS STORE =========
+  document.getElementById('addSupplementBtn').onclick = async () => {
+    const name = document.getElementById('sname').value.trim();
+    const price = Number(document.getElementById('sprice').value);
+    const stock = Number(document.getElementById('sstock').value);
+    if (!name || !price || !stock) return alert('Fill all fields');
+    try {
+      // update if exists (by name)
+      const snap = await db.collection('store').where('name','==',name).get();
+      if (!snap.empty) {
+        await db.collection('store').doc(snap.docs[0].id).update({ price, stock });
+        alert('Supplement updated');
+      } else {
+        await db.collection('store').add({ name, price, stock });
+        alert('Supplement added');
+      }
+      document.getElementById('sname').value = document.getElementById('sprice').value = document.getElementById('sstock').value = '';
+      await loadSupplements();
+    } catch (e) { console.error(e); alert('Error: '+e.message) }
+  };
+
+  async function loadSupplements() {
+    const ul = document.getElementById('supplementList');
+    ul.innerHTML = '<li class="muted">Loading...</li>';
+    try {
+      const snap = await db.collection('store').orderBy('name').get();
+      ul.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        const li = document.createElement('li');
+        li.innerHTML = `<div style="flex:1">${d.name} — ₹${d.price} <div class="muted">Stock: ${d.stock}</div></div>
+          <div class="flex">
+            <button class="small" onclick="editSupplement('${doc.id}')">Edit</button>
+            <button class="small btn-danger" onclick="deleteSupplement('${doc.id}')">Delete</button>
+          </div>`;
+        ul.appendChild(li);
+      });
+    } catch (e) { console.error(e); ul.innerHTML = '<li>Error loading store</li>'; }
+  }
+
+  window.editSupplement = async function(id) {
+    const doc = await db.collection('store').doc(id).get();
+    if (!doc.exists) return alert('Not found');
+    const d = doc.data();
+    const name = prompt('Name:', d.name) || d.name;
+    const price = Number(prompt('Price:', d.price) || d.price);
+    const stock = Number(prompt('Stock:', d.stock) || d.stock);
+    await db.collection('store').doc(id).update({ name, price, stock });
+    await loadSupplements();
+  };
+
+  window.deleteSupplement = async function(id) {
+    if (!confirm('Delete supplement?')) return;
+    await db.collection('store').doc(id).delete();
+    await loadSupplements();
+  };
+
+  // ========= DIET PLANS =========
+  document.getElementById('saveDietBtn').onclick = async () => {
+    const memberId = document.getElementById('dietMemberSelect').value;
+    const plan = document.getElementById('dietPlan').value.trim();
+    if (!memberId || !plan) return alert('Select member and enter plan');
+    try {
+      const snap = await db.collection('diets').where('memberId','==',memberId).get();
+      if (!snap.empty) {
+        await db.collection('diets').doc(snap.docs[0].id).update({ plan, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        alert('Diet updated');
+      } else {
+        await db.collection('diets').add({ memberId, plan, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        alert('Diet saved');
+      }
+      document.getElementById('dietPlan').value = '';
+      await loadDiets();
+    } catch (e) { console.error(e); alert('Error saving diet: '+e.message) }
+  };
+
+  async function loadDiets() {
+    const ul = document.getElementById('dietList');
+    ul.innerHTML = '<li class="muted">Loading...</li>';
+    try {
+      const snap = await db.collection('diets').orderBy('createdAt','desc').get();
+      ul.innerHTML = '';
+      for (const doc of snap.docs) {
+        const d = doc.data();
+        const member = membersMap[d.memberId] || { name: 'Unknown' };
+        const li = document.createElement('li');
+        li.innerHTML = `<div style="flex:1"><strong>${member.name}</strong><div class="muted">${d.plan}</div></div>
+          <div class="flex">
+            <button class="small" onclick="editDiet('${doc.id}', ${JSON.stringify(d.plan)})">Edit</button>
+            <button class="small btn-danger" onclick="deleteDiet('${doc.id}')">Delete</button>
+          </div>`;
+        ul.appendChild(li);
+      }
+    } catch (e) { console.error(e); ul.innerHTML = '<li>Error loading diets</li>'; }
+  }
+
+  window.editDiet = async function(id, oldPlan) {
+    const newPlan = prompt('Edit diet plan:', oldPlan) || oldPlan;
+    await db.collection('diets').doc(id).update({ plan: newPlan, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    await loadDiets();
+  };
+
+  window.deleteDiet = async function(id) {
+    if (!confirm('Delete diet?')) return;
+    await db.collection('diets').doc(id).delete();
+    await loadDiets();
+  };
+
+  // ========= REPORTS (CSV) =========
+  document.getElementById('exportMembersBtn').onclick = async () => {
+    const snap = await db.collection('members').get();
+    const rows = [['Name','Email','Package','Joined']];
+    snap.forEach(doc => {
+      const d = doc.data();
+      const joined = d.joined ? (d.joined.toDate ? d.joined.toDate().toLocaleString() : d.joined) : '';
+      rows.push([d.name||'', d.email||'', d.package||'', joined]);
+    });
+    downloadCSV(rows,'members.csv');
+  };
+
+  document.getElementById('exportBillsBtn').onclick = async () => {
+    const snap = await db.collection('bills').get();
+    const rows = [['Member','Amount','Paid','Date']];
+    for (const doc of snap.docs) {
+      const d = doc.data();
+      const member = membersMap[d.memberId] ? membersMap[d.memberId].name : d.memberId;
+      const date = d.createdAt ? (d.createdAt.toDate ? d.createdAt.toDate().toLocaleString() : d.createdAt) : '';
+      rows.push([member, d.amount, d.paid?'Yes':'No', date]);
+    }
+    downloadCSV(rows,'bills.csv');
+  };
+
+  function downloadCSV(rows, filename) {
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ========= UTIL: populate selects & update stats =========
+  async function populateSelects() {
+    const billSelect = document.getElementById('billMemberSelect');
+    const notifSelect = document.getElementById('notifMemberSelect');
+    const dietSelect = document.getElementById('dietMemberSelect');
+    billSelect.innerHTML = '<option value="">Select member</option>';
+    notifSelect.innerHTML = '<option value="">All members</option>';
+    dietSelect.innerHTML = '<option value="">Select member</option>';
+    for (const uid in membersMap) {
+      const m = membersMap[uid];
+      const opt1 = document.createElement('option'); opt1.value = uid; opt1.textContent = m.name+' ('+(m.email||'')+')';
+      const opt2 = opt1.cloneNode(true);
+      const opt3 = opt1.cloneNode(true);
+      billSelect.appendChild(opt1);
+      notifSelect.appendChild(opt2);
+      dietSelect.appendChild(opt3);
+    }
+  }
+
+  async function updateDashboardStats() {
+    // members count already updated in loadMembers
+    try {
+      const paidSnap = await db.collection('bills').where('paid','==',true).get();
+      let revenue = 0;
+      const thisMonth = new Date().getMonth();
+      paidSnap.forEach(doc => {
+        const d = doc.data();
+        // attempt to only add those in this month if createdAt exists
+        if (d.createdAt && d.createdAt.toDate) {
+          const dt = d.createdAt.toDate();
+          if (dt.getMonth() === thisMonth) revenue += Number(d.amount||0);
+        } else {
+          revenue += Number(d.amount||0);
+        }
+      });
+      document.getElementById('statRevenue').textContent = revenue;
+    } catch(e){ console.error(e); }
+  }
+
+  // ========= Helpers: notifications, bills reload =========
+  async function loadNotifications(){ await loadNotifications(); } // placeholder - already defined above
+
+  // Because some functions inter-call, ensure initial population:
+  async function loadNotifications(){ // override to ensure defined
+    const ul = document.getElementById('notifList'); ul.innerHTML = '<li class="muted">Loading...</li>';
+    try {
+      const snap = await db.collection('notifications').orderBy('createdAt','desc').get();
+      ul.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        const li = document.createElement('li');
+        li.innerHTML = `<div style="flex:1"><strong>${d.title}</strong><div class="muted">${d.message}</div><div class="muted">To: ${d.memberEmail||'All'}</div></div>
+          <div class="flex"><button class="small btn-danger" onclick="deleteNotification('${doc.id}')">Delete</button></div>`;
+        ul.appendChild(li);
+      });
+    } catch(e){ console.error(e); ul.innerHTML = '<li>Error</li>'; }
+  }
+
+  // Because we used window functions with same names, ensure they exist - they do above.
+
+  // ========= initial helper bindings =========
+  // search members
+  document.getElementById('memberSearch').addEventListener('input', function(){
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#memberList li').forEach(li=>{
+      li.style.display = li.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+  // search bills
+  document.getElementById('billSearch').addEventListener('input', function(){
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#billList li').forEach(li=>{
+      li.style.display = li.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+
+  // populate selects after members loaded:
+  async function populateAndRefresh() {
+    await populateSelects();
+    await loadBills();
+    await loadNotifications();
+    await loadSupplements();
+    await loadDiets();
+    updateDashboardStats();
+  }
+
+  // small safety: call populateSelects when members change:
+  // Already called in loadMembers after update.
+
+  </script>
+</body>
+</html>
